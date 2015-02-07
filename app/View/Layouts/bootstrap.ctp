@@ -51,7 +51,7 @@
 				<div class="nav-collapse">
 					<ul class="nav">
 						<li class="active"><a href="/KnowledgeBase">Home</a></li>
-						<li><a href="#about">About</a></li>
+						<li><a href="/KnowledgeBase/problems">Problems</a></li>
 						<li><a href="#contact">Contact</a></li>
 					</ul>
 				</div><!--/.nav-collapse -->
