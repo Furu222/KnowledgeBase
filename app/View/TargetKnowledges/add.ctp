@@ -2,7 +2,7 @@
 	<div class="span9">
 		<?php echo $this->BootstrapForm->create('TargetKnowledge', array('class' => 'form-horizontal'));?>
 			<fieldset>
-				<legend><?php echo __('Add %s', __('Target Knowledge')); ?></legend>
+				<legend><?php echo __('Add KnowledgeBase'); ?></legend>
 				<?php
 				echo $this->BootstrapForm->input('name', array(
 					'required' => 'required',

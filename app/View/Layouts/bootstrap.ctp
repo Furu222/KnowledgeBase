@@ -34,7 +34,10 @@
 	<?php
 	echo $this->fetch('meta');
 	echo $this->fetch('css');
-	?>
+    ?>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7/jquery.min.js"></script>
+	<?php echo $this->fetch('script'); ?>
+
 </head>
 
 <body>
@@ -50,7 +53,7 @@
 				<a class="brand" href="/KnowledgeBase"><?php echo __('KnowledgeBase'); ?></a>
 				<div class="nav-collapse">
 					<ul class="nav">
-						<li class="active"><a href="/KnowledgeBase">Home</a></li>
+						<li class="active"><a href="/KnowledgeBase">KnowledgeList</a></li>
 						<li><a href="/KnowledgeBase/problems">Problems</a></li>
 						<li><a href="#contact">Contact</a></li>
 					</ul>
@@ -72,9 +75,6 @@
 	<!-- Le javascript
     ================================================== -->
 	<!-- Placed at the end of the document so the pages load faster -->
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7/jquery.min.js"></script>
-	<?php echo $this->Html->script('bootstrap.min'); ?>
-	<?php echo $this->fetch('script'); ?>
-
+	
 </body>
 </html>

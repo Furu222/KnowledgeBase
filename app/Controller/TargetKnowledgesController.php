@@ -33,8 +33,30 @@ class TargetKnowledgesController extends AppController {
  * @return void
  */
 	public function index() {
-		$this->TargetKnowledge->recursive = 0;
-		$this->set('targetKnowledges', $this->Paginator->paginate());
+        $this->TargetKnowledge->recursive = 0;
+
+        // Categoryのルートがあるかを判定
+        $this->loadModel('Category');
+        if($this->Category->find('count') == 0){ // Categoryがなにもないとき
+            $this->Session->setFlash(__('At first please decide root category for KnowledgeBase.'), 'alert', 
+                array(
+                    'plugin' => 'TwitterBootstrap',
+                    'class' => 'alert-error',
+                )
+            );
+            $this->redirect(array('controller' => 'Categories', 'action' => 'add')); // ルートの追加
+        }else if ($this->TargetKnowledge->find('count') == 0){ // 対象知識がないとき
+            $this->Session->setFlash(__('Please select problems list for construct knowledgebase.'),
+                'alert', 
+                array(
+                    'plugin' => 'TwitterBootstrap',
+                    'class' => 'alert-error',
+                )
+            );
+            $this->redirect(array('controller' => 'Problems', 'action' => 'index'));
+        }else{
+		    $this->set('targetKnowledges', $this->Paginator->paginate());
+        }
 	}
 
 /**
@@ -81,78 +103,4 @@ class TargetKnowledgesController extends AppController {
 			}
 		}
 	}
-
-/**
- * edit method
- *
- * @param string $id
- * @return void
- */
-	public function edit($id = null) {
-		$this->TargetKnowledge->id = $id;
-		if (!$this->TargetKnowledge->exists()) {
-			throw new NotFoundException(__('Invalid %s', __('target knowledge')));
-		}
-		if ($this->request->is('post') || $this->request->is('put')) {
-			if ($this->TargetKnowledge->save($this->request->data)) {
-				$this->Session->setFlash(
-					__('The %s has been saved', __('target knowledge')),
-					'alert',
-					array(
-						'plugin' => 'TwitterBootstrap',
-						'class' => 'alert-success'
-					)
-				);
-				$this->redirect(array('action' => 'index'));
-			} else {
-				$this->Session->setFlash(
-					__('The %s could not be saved. Please, try again.', __('target knowledge')),
-					'alert',
-					array(
-						'plugin' => 'TwitterBootstrap',
-						'class' => 'alert-error'
-					)
-				);
-			}
-		} else {
-			$this->request->data = $this->TargetKnowledge->read(null, $id);
-		}
-	}
-
-/**
- * delete method
- *
- * @param string $id
- * @return void
- */
-	public function delete($id = null) {
-		if (!$this->request->is('post')) {
-			throw new MethodNotAllowedException();
-		}
-		$this->TargetKnowledge->id = $id;
-		if (!$this->TargetKnowledge->exists()) {
-			throw new NotFoundException(__('Invalid %s', __('target knowledge')));
-		}
-		if ($this->TargetKnowledge->delete()) {
-			$this->Session->setFlash(
-				__('The %s deleted', __('target knowledge')),
-				'alert',
-				array(
-					'plugin' => 'TwitterBootstrap',
-					'class' => 'alert-success'
-				)
-			);
-			$this->redirect(array('action' => 'index'));
-		}
-		$this->Session->setFlash(
-			__('The %s was not deleted', __('target knowledge')),
-			'alert',
-			array(
-				'plugin' => 'TwitterBootstrap',
-				'class' => 'alert-error'
-			)
-		);
-		$this->redirect(array('action' => 'index'));
-	}
-
 }

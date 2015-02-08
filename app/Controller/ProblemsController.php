@@ -33,19 +33,40 @@ class ProblemsController extends AppController {
  * @return void
  */
     public function index() {
+        // Sessionメッセージの設定
+        $this->Session->setFlash(__('Please select Year and Grade of Test or Original Test.'), 
+            'alert', 
+            array(
+                'plugin' => 'TwitterBootstrap',
+                'class' => 'alert',
+            ),
+            'NoSelect'
+        );
+        $this->Session->setFlash(__('Data is Empty. Please Select a different Year and Grade for Test.'), 
+            'alert', 
+            array(
+                'plugin' => 'TwitterBootstrap',
+                'class' => 'alert-error',
+            ),
+            'NoData'
+        );
+
         // 過去問題の年度と級を選んだとき
         if ($this->request->is('post')){
-            $year = $this->request->data["Problems"]['year']['year'];
-            $grade = $this->request->data["Problems"]['grade'];
+            if ($this->request->data['Problems']['ProblemsType'] == 0){ // オリジナル問題の場合
+                $year = 0;
+                $grade = 0;
+            }else{
+                $year = $this->request->data['Problems']['year']['year'];
+                $grade = $this->request->data['Problems']['grade'];
+            }
             // 問題情報を取得
             $problems = $this->Problem->getProblemsData($year, $grade);
 
             $this->set('problems', $problems['response']);
             $this->set(compact('year', 'grade'));
-        }else{
-            $this->set('problems', 'Please Select Year and Grade for Test');
-        }
-	}
+    	}
+    }
 
 /**
  * view method
@@ -53,42 +74,10 @@ class ProblemsController extends AppController {
  * @param string $id
  * @return void
  */
-	public function view($id = null) {
-//		$this->Problem->id = $id;
-//		if (!$this->Problem->exists()) {
-//			throw new NotFoundException(__('Invalid %s', __('Problem')));
-//		}
-//		$this->set('problems', $this->Problem->read(null, $id));
-	}
-
-/**
- * add method
- *
- * @return void
- */
-	public function add() {
-//		if ($this->request->is('post')) {
-//			$this->Problem->create();
-//			if ($this->Problem->save($this->request->data)) {
-//				$this->Session->setFlash(
-//					__('The %s has been saved', __('problem')),
-//					'alert',
-//					array(
-//						'plugin' => 'TwitterBootstrap',
-//						'class' => 'alert-success'
-//					)
-//				);
-//				$this->redirect(array('action' => 'index'));
-//			} else {
-//				$this->Session->setFlash(
-//					__('The %s could not be saved. Please, try again.', __('problem')),
-//					'alert',
-//					array(
-//						'plugin' => 'TwitterBootstrap',
-//						'class' => 'alert-error'
-//					)
-//				);
-//			}
-//		}
+	public function view($id = null, $year = null, $grade = null) {
+        $problems = $this->Problem->getProblemsData($year, $grade);
+        $problem = $problems['response'][$id]['MoridaiQuestion'];
+		$this->set('problem', $problem);
+        $this->set(compact('year', 'grade'));
 	}
 }

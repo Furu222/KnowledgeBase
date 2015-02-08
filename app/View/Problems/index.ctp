@@ -4,11 +4,11 @@
 
         <?php
             // 問題情報がないとき
-            if (count($problems) == 1){
-                if (isset($problems['response']))
-                    $problems = $problems['response'];
-                echo '<p>'.$problems.'</p>';
-            }else{
+            if (!isset($problems))
+                echo $this->Session->flash('NoSelect');
+            else if (count($problems) == 1){
+                echo $this->Session->flash('NoData');
+            }else{ 
         ?>
 
 		<table class="table">
@@ -46,7 +46,7 @@
                     <td><?php echo h($problem['MoridaiQuestion']['right_answer']);?>&nbsp;</td>
                 <?php } ?>
 				<td class="actions">
-				    <?php echo $this->Html->link(__('View'), array('action' => 'view', $problem['MoridaiQuestion']['id'])); ?>
+				    <?php echo $this->Html->link(__('View'), array('action' => 'view', $key, $year, $grade)); ?>
 				</td>
 			</tr>
 		<?php endforeach; ?>
@@ -57,9 +57,11 @@
 	</div>
 	<div class="span3">
 		<div class="well" style="padding: 8px 0; margin-top:8px;">
+        <!-- 問題選択用Box -->
 		<ul class="nav nav-list">
 			<li class="nav-header"><?php echo __('Select Test'); ?></li>
             <?php echo $this->BootstrapForm->create('Problems', array('calss' => 'form-horizontal'));?>
+            <?php echo $this->BootstrapForm->radio('ProblemsType', array(1 => 'Past Test', 0 => 'Original Problems'), array('value' => 1));?>
             <li><?php echo $this->BootstrapForm->input('year', array(
                     'type' => 'date',
                     'dateFormat' => 'Y',
@@ -70,8 +72,26 @@
             <?php // $grade用配列 ?>
             <?php $grade = array(1 => '1級', 2 => '2級', 3=> '3級'); ?>
             <li><?php echo $this->BootstrapForm->input('grade', array('options' => $grade));?></li>
-            <li><?php echo $this->BootstrapForm->end(__('送信')); ?>
+            <li><?php echo $this->BootstrapForm->end(__('Submit')); ?>
 		</ul>
 		</div>
 	</div>
 </div>
+<?php $this->Html->scriptStart(array('inline' => false)); ?>    
+//オリジナル問題を選んだ場合はセレクトボックスを無効化
+    $(function(){
+        $("input[name='data[Problems][ProblemsType]']").change(function(){
+            if ($("input[name='data[Problems][ProblemsType]']:checked").val() == 0){ // オリジナル問題の場合
+                $("#ProblemsYearYear").toggle();
+                $("label[for=ProblemsYear]").toggle();
+                $("#ProblemsGrade").toggle();
+                $("label[for=ProblemsGrade]").toggle();
+            }else{ // 過去問題の場合
+                $("#ProblemsYearYear").toggle();
+                $("label[for=ProblemsYear]").toggle();
+                $("#ProblemsGrade").toggle();
+                $("label[for=ProblemsGrade]").toggle();
+            }
+        });
+    }); 
+<?php $this->Html->scriptEnd(); ?>
