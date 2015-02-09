@@ -4,29 +4,19 @@
 		<dl>
 			<dt><?php echo __('問題文'); ?></dt>
 			<dd>
-				<?php echo h($problem['question']); ?>
+				<?php echo h($problem['sentence']); ?>
 				&nbsp;
 			</dd>
             <dt><?php echo __('正答'); ?></dt>
+            <dd><?php echo $problem['right_answer']; ?>&nbsp;</dd>
             <?php
-                if ($problem['format'] === 'multiple-choice'){
-                    $j = 0;
-                    for ($i = 1; $i <= 4; $i++){
-                        if ($i == $problem['right_answer']){
-                            echo '<dd>'.h($problem['option'.$i]).'&nbsp;</dd>';
-                        }else{
-                            $wrong[$j++] = $problem['option'.$i];
-                        }
-                    }
-                    echo '<dt>誤答&nbsp;</dt>';
+                if (isset($problem['wrong_answer1'])){
+                    echo '<dt>誤答</dt>';
                     echo '<dd>';
-                    // 誤回答表示
-                    foreach($wrong as $value){
-                        echo $value.'</br>';
+                    for ($i = 1; $i <= 3; $i++){
+                        echo $problem['wrong_answer'.$i].'<br />';
                     }
                     echo '</dd>';
-                }else{ // 記述式の場合
-                   echo '<dd>'.$problem['right_answer'].'&nbsp;</dd>'; 
                 }
             ?>
             <dt>出題年度</dt>
@@ -63,7 +53,7 @@
         <h3>KnowledgeBase</h3>
         <dl>
             <dt>対象知識</dt>
-            <dd></dd>
+            <dd><?php echo $kb; ?></dd>
             <dt>カテゴリ</dt>
             <dd></dd>
             <dt>プロパティ</dt>

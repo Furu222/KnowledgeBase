@@ -76,8 +76,15 @@ class ProblemsController extends AppController {
  */
 	public function view($id = null, $year = null, $grade = null) {
         $problems = $this->Problem->getProblemsData($year, $grade);
-        $problem = $problems['response'][$id]['MoridaiQuestion'];
+        $n_problem = $problems['response'][$id]['MoridaiQuestion'];
+        // 問題情報整理（問題文、正答、誤答のみにする）
+        $problem = $this->Problem->getOrderProblem($n_problem);
+
 		$this->set('problem', $problem);
         $this->set(compact('year', 'grade'));
+
+        // 問題情報を知識ベースの各要素に変換 $kb = KnowledgeBase
+        $this->set('kb', $this->Problem->convertProblem($problem, $year, $grade));
+
 	}
 }
