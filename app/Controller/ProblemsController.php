@@ -74,8 +74,9 @@ class ProblemsController extends AppController {
  * @param string $id
  * @return void
  */
-	public function view($id = null, $year = null, $grade = null) {
+	public function view($year = null, $grade = null, $id = null) {
         $problems = $this->Problem->getProblemsData($year, $grade);
+        
         $n_problem = $problems['response'][$id]['MoridaiQuestion'];
         // 問題情報整理（問題文、正答、誤答のみにする）
         $problem = $this->Problem->getOrderProblem($n_problem);
@@ -83,8 +84,48 @@ class ProblemsController extends AppController {
 		$this->set('problem', $problem);
         $this->set(compact('year', 'grade'));
 
-        // 問題情報を知識ベースの各要素に変換 $kb = KnowledgeBase
-        $this->set('kb', $this->Problem->convertProblem($problem, $year, $grade));
+        // 問題ID取得
+        $p_id = $problems['response'][$id]['MoridaiQuestion']['id'];
+        $this->loadModel('ProblemPattern');
+        $already = $this->ProblemPattern->find('first', array('conditions' => array('problem_id' => $p_id)));
+        $kb = '';
+        $pattern = '';
+        $al_flg = 0; // 0の場合は登録されていない
 
+        if (empty($already)){ // まだ登録されていない問題の場合
+            $kb = $this->Problem->convertProblem($problem, $year, $grade); // 知識ベースの各要素を取得
+        }else{ // 登録済みの問題の場合
+            $this->Session->setFlash(__('Already this problem has been saved.'),
+                'alert', 
+                array(
+                    'plugin' => 'TwitterBootstrap',
+                    'class' => 'alert',
+                ),
+                'already'
+            );
+            //$pattern = $this->Pattern->find('first', array('conditions' => array('id' => $already['ProblemPattern']['pattern_id'])));
+
+            // DBから各要素を取得
+            $pattern = $already['Pattern']; // BelongsToにより
+
+            $conditions = array('problem_id' => $p_id);
+            $this->loadModel('ProblemTargetKnowledge');
+            $t_knows = $this->ProblemTargetKnowledge->find('all', array('conditions' => $conditions)); // 対象知識は複数の場合もあるため
+            $this->loadModel('ProblemCategory');
+            $category = $this->ProblemCategory->find('first', array('conditions' => $conditions));
+            $this->loadModel('ProblemProperty');
+            $properties = $this->ProblemProperty->find('all', array('conditioons' => $conditions)); // プロパティは複数の場合もあるため
+            $this->loadModel('ProblemObject');
+            $objects = $this->ProblemObject->find('all', array('conditions' => $conditions)); // オブジェクトも複数の場合もあるため
+            $al_flg = 1;
+            
+            // 取ってきた値を$kbに格納
+            $kb['tknows'] = $t_knows['TargetKnowledge'];
+            $kb['category'] = $category['Category']['name'];
+            $kb['properties'] = $properties['Property'];
+            $kb['objects'] = $objects['Object'];
+            $kb['pattern'] = $pattern['Pattern']; 
+        }
+        $this->set(compact('kb', 'al_flg'));
 	}
 }

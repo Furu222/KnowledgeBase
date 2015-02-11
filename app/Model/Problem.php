@@ -64,21 +64,69 @@ class Problem extends AppModel {
  * @param string[] $problem 問題情報
  * @param int $year 出題年度
  * @param int $grade 出題級
- * @return string[] $result 変換済みの問題情報
+ * @return string[] $result 変換済みの問題情報, 出題パターン
  */
     public function convertProblem($problem, $year, $grade){ 
         // 出題パターン判定
-        $pattern = $this->getProblemPattern($problem);
-       echo $pattern; 
+        $patternId = $this->getProblemPattern($problem);
         // 文字列置換
         $problem['sentence'] = $this->getReplacePreg($problem['sentence'], $year);
-        
+
+        // パターン情報を格納
+        App::import('Model', 'Pattern');
+        $this->Pattern = new Pattern; 
+        $patterns = $this->Pattern->find('first', array('conditions' => array('id' => $patternId)));
+
+        // 出題パターンに沿って問題情報から各要素を抽出
+        $result['knowledge'] = $this->getKnowledgeElements($problem, $patterns['Pattern']);
+        // 出題パターンを追加格納
+        $result['Pattern'] = array('id' => $patterns['Pattern']['id'], 'name' => $patterns['Pattern']['name']);
+
+        return $result;
     }
+
+/**
+ * 文字列置換関数
+ * @param string $data 問題文
+ * @param int $year 出題年度
+ * @return string $result 文字列置換済みの問題文
+ */
+    public function getReplacePreg($data, $year){
+        /* 文字列置換
+         * 以下の文字列を含む問題文があった場合、置換を行う
+         * "今年": $year."年"
+         * "現在": $year."年現在"
+         * "来年": $year + 1."年"
+         * "去年": $year - 1."年"
+         * "昨年": $year - 1."年"
+         */
+        $searchstr = array('今年', '現在', '来年', '去年', '昨年');
+        $replacestr = array($year.'年', $year.'年現在', ($year+1).'年', ($year-1).'年', ($year-1).'年');
+        $result = str_replace($searchstr, $replacestr, $data); 
+        // 重複置換確認
+        // 上記だけだと例えば2013年現在という文字列があった場合2013年2013年現在になってしまうので、もとに戻す
+        $result = preg_replace('/[0-9]{4}年[0-9]{4}年現在/u', $year.'年現在', $result);
+
+        /* 文末削除
+         * ここは適宜追加していく他、将来的には文末テーブル作ってユーザに文末を決めてもらうと汎用性あがるかも
+         */
+        $preg = array(
+            '/(何.?|なに.?|どれ|どこ|誰|だれ|もの|どのあたり)?(ですか|でしたか)。?$/u',
+            '/(何.*と言|なん.*と言|何.*とい|なん.*とい|何.*と言われて|なん.*と言われて|何.*といわれて|なん.*といわれて|何.*と呼ばれて|なん.*と呼ばれて|何.*とよばれて|なん.*とよばれて|されて|に?あり|に?あたり|に?なり|つき|かかり)?(い?ますか|い?ましたか)。?$/u',
+            '/を?書きなさい。?$/u',
+            '/(次|つぎ)の(内|うち|中|なか)の/u',
+        );
+        $result = preg_replace($preg, "", $result);
+        $result = preg_replace('/書きなさい。?$/u', "", $result); // 上記以外の場合（記述式問題）文末を削除
+
+        return $result;
+    }
+
 
     /**
      * 問題の出題パターン判定関数
      * @param string[] $data 問題の配列
-     * @return string $result 出題パターン
+     * @return string $result 出題パターンID
      */
     public function getProblemPattern($data){
         $result = '';
@@ -174,7 +222,7 @@ class Problem extends AppModel {
                     }
                 }
                 if ($piflg == 1){
-                    $result = "Pi+";
+                    $result = 'Pi+';
                 }else{
                     // 6. 正答が人名
                     // 人名かを判断するためにユーザ辞書の設定を消してMecabをやり直す
@@ -192,7 +240,7 @@ class Problem extends AppModel {
                         if ($human_flg == 1) break;
                     }
                     if ($human_flg == 1){
-                        $result = "Pf";
+                        $result = 'Pf';
                     }else{
                         // 7. 正答が盛岡独自の用語
                         /*
@@ -233,43 +281,6 @@ class Problem extends AppModel {
                 }
             }
         }
-        return $result;
-    }
-
-/**
- * 文字列置換関数
- * @param string $data 問題文
- * @param int $year 出題年度
- * @return string $result 文字列置換済みの問題文
- */
-    public function getReplacePreg($data, $year){
-        /* 文字列置換
-         * 以下の文字列を含む問題文があった場合、置換を行う
-         * "今年": $year."年"
-         * "現在": $year."年現在"
-         * "来年": $year + 1."年"
-         * "去年": $year - 1."年"
-         * "昨年": $year - 1."年"
-         */
-        $searchstr = array('今年', '現在', '来年', '去年', '昨年');
-        $replacestr = array($year.'年', $year.'年現在', ($year+1).'年', ($year-1).'年', ($year-1).'年');
-        $result = str_replace($searchstr, $replacestr, $data); 
-        // 重複置換確認
-        // 上記だけだと例えば2013年現在という文字列があった場合2013年2013年現在になってしまうので、もとに戻す
-        $result = preg_replace('/[0-9]{4}年[0-9]{4}年現在/u', $year.'年現在', $result);
-
-        /* 文末削除
-         * ここは適宜追加していく他、将来的には文末テーブル作ってユーザに文末を決めてもらうと汎用性あがるかも
-         */
-        $preg = array(
-            '/(何.?|なに.?|どれ|どこ|誰|だれ|もの|どのあたり)?(ですか|でしたか)。?$/u',
-            '/(何.*と言|なん.*と言|何.*とい|なん.*とい|何.*と言われて|なん.*と言われて|何.*といわれて|なん.*といわれて|何.*と呼ばれて|なん.*と呼ばれて|何.*とよばれて|なん.*とよばれて|されて|に?あり|に?あたり|に?なり|つき|かかり)?(い?ますか|い?ましたか)。?$/u',
-            '/を?書きなさい。?$/u',
-            '/(次|つぎ)の(内|うち|中|なか)の/u',
-        );
-        $result = preg_replace($preg, "", $result);
-        $result = preg_replace('/書きなさい。?$/u', "", $result); // 上記以外の場合（記述式問題）文末を削除
-
         return $result;
     }
 
@@ -315,6 +326,63 @@ class Problem extends AppModel {
             else $result = false;
         }else $result = false; 
 
+        return $result;
+    }
+
+/**
+ * 問題情報から知識ベースの各要素を出題パターンに沿って抽出する関数
+ *
+ * @param string[] $problem 問題情報
+ * @param string[] $pattern 出題パターン
+ * @return string[] $result 知識ベースの各要素に変換済みの問題情報
+ */
+    public function getKnowledgeElements($problem, $pattern){
+        $result = ''; // 結果用変数
+        $column_name = array('sentence', 'right_answer', 'wrong_answer1', 'wrong_answer2', 'wrong_answer3'); // Problemの要素名と対応
+        foreach($pattern as $key => $value){
+            $col = preg_match('/(?<=appeared_).*/u', $key, $m);
+            if ($col === 1){ // appeard_が含まれている場合
+                $res_cname = ''; // カラム名
+                if ($m[0] === 'property'){ // propertyのとき
+                    $res_cname = 'properties';
+                    if ($value == 1){ // 問題文の場合は句読点で分割
+                        $result[$res_cname] = preg_split('/[、。,.，．]/u', $problem[$column_name[$value - 1]]);
+                    }
+                }else{ // 対象知識かオブジェクトの場合
+                    preg_match('/.*[^0-9]/u', $m[0], $resm); // 数字を削除
+                    $res_cname = $resm[0].'s'; // カラム名を複数形にして格納
+                    if ($value == 1){ // 問題文の場合は用語抽出
+                        $result[$res_cname][] = $this->yahoo($problem[$column_name[$value - 1]]); 
+                    }
+                } 
+                if ($value == 2 || $value == 3){ // 正答と誤答のとき
+                    $result[$res_cname][] = $problem[$column_name[$value - 1]]; // $valueは1からはじまる
+                    if ($value == 3){ // 誤答の場合
+                        $result[$res_cname][] = $problem[$column_name[$value]]; // 誤答の残り2つも格納
+                        $result[$res_cname][] = $problem[$column_name[$value + 1]]; 
+                    }
+                }
+            }
+        }
+        return $result;
+    }
+
+/**
+ * Yahooキーフレーズ抽出APIを用いたキーワード抽出関数
+ *
+ * @param string $sentence 問題文
+ * @return string $result 抽出されたキーワード
+ */
+    public function yahoo($sentence){
+        $appid = 'dj0zaiZpPWxPaEZXa2tJV2FqMCZzPWNvbnN1bWVyc2VjcmV0Jng9YzA-';
+        $output = 'json';
+        $request  = "http://jlp.yahooapis.jp/KeyphraseService/V1/extract?";
+        $request .= "appid=".$appid."&sentence=".urlencode($sentence)."&output=".$output;
+        
+        $result = json_decode(file_get_contents($request), true);
+        reset($result); // array('keyword' => score)の形式で重要度順に返ってくるので最初の要素名を取得する
+        $result = key($result);
+        
         return $result;
     }
 }

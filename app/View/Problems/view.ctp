@@ -50,17 +50,48 @@
 		</div>
 	</div>
     <div class="span9" style='margin-left:0;'>
-        <h3>KnowledgeBase</h3>
+        <h3>knowledgeBase</h3>
         <dl>
+            <dt>出題パターン</dt>
+            <dd><?php echo $kb['Pattern']['id'].': '. $kb['Pattern']['name']; ?></dd>
             <dt>対象知識</dt>
-            <dd><?php echo $kb; ?></dd>
+            <dd><?php
+                foreach($kb['knowledge']['tknows'] as $value){
+                    echo $value.'<br />';
+                }
+            ?></dd>
             <dt>カテゴリ</dt>
             <dd></dd>
             <dt>プロパティ</dt>
-            <dd></dd>
+            <dd><?php
+                foreach($kb['knowledge']['properties'] as $value){
+                    echo $value.'<br />';
+                }
+            ?></dd>
             <dt>オブジェクト</dt>
-            <dd></dd>
+            <dd><?php
+                foreach($kb['knowledge']['objects'] as $value){
+                    echo $value.'<br />';
+                }
+            ?></dd>
         </dl>
     </div>
+    <div class="span9" style='margin-left:0;'>
+    <?php
+        echo $this->BootstrapForm->submit('この問題を登録', array('id' => 'add_button', 'class' => 'btn btn-primary'));
+    ?>
+    </div>
 </div>
-
+<?php
+    if ($al_flg == 1){ // 既に登録されている場合
+        $this->Html->scriptStart(array('inline' => false));
+?>
+    // 既に登録されている場合は登録ボタンを表示しない
+    $(function(){
+        $("#add_button").hide();
+    }); 
+<?php
+        $this->Session->flash('already');
+        $this->Html->scriptEnd();
+    }
+?>

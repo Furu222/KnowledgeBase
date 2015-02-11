@@ -46,7 +46,7 @@
                     <td><?php echo h($problem['MoridaiQuestion']['right_answer']);?>&nbsp;</td>
                 <?php } ?>
 				<td class="actions">
-				    <?php echo $this->Html->link(__('View'), array('action' => 'view', $key, $year, $grade)); ?>
+				    <?php echo $this->Html->link(__('View'), array('action' => 'view', $year, $grade, $key)); ?>
 				</td>
 			</tr>
 		<?php endforeach; ?>
@@ -78,7 +78,7 @@
 	</div>
 </div>
 <?php $this->Html->scriptStart(array('inline' => false)); ?>    
-//オリジナル問題を選んだ場合はセレクトボックスを無効化
+    //オリジナル問題を選んだ場合はセレクトボックスを無効化
     $(function(){
         $("input[name='data[Problems][ProblemsType]']").change(function(){
             if ($("input[name='data[Problems][ProblemsType]']:checked").val() == 0){ // オリジナル問題の場合
