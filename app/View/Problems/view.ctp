@@ -41,6 +41,11 @@
             &nbsp;</dd>
 		</dl>
 	</div>
+<?php
+    if ($kb === 'timeout'){
+        echo $this->Session->flash('timeout');
+    }else{
+?>
 	<div class="span3">
 		<div class="well" style="padding: 8px 0; margin-top:8px;">
 		<ul class="nav nav-list">
@@ -61,7 +66,7 @@
                 }
             ?></dd>
             <dt>カテゴリ</dt>
-            <dd></dd>
+            <dd><?php echo $kb['Category']['name']; ?></dd>
             <dt>プロパティ</dt>
             <dd><?php
                 foreach($kb['knowledge']['properties'] as $value){
@@ -95,3 +100,4 @@
         $this->Html->scriptEnd();
     }
 ?>
+<?php } ?>

@@ -69,19 +69,25 @@ class Problem extends AppModel {
     public function convertProblem($problem, $year, $grade){ 
         // 出題パターン判定
         $patternId = $this->getProblemPattern($problem);
-        // 文字列置換
-        $problem['sentence'] = $this->getReplacePreg($problem['sentence'], $year);
 
-        // パターン情報を格納
-        App::import('Model', 'Pattern');
-        $this->Pattern = new Pattern; 
-        $patterns = $this->Pattern->find('first', array('conditions' => array('id' => $patternId)));
+        if ($patternId === 'timeout'){
+            $result = 'timeout'; 
+        }else{
+            // 文字列置換
+            $problem['sentence'] = $this->getReplacePreg($problem['sentence'], $year);
 
-        // 出題パターンに沿って問題情報から各要素を抽出
-        $result['knowledge'] = $this->getKnowledgeElements($problem, $patterns['Pattern']);
-        // 出題パターンを追加格納
-        $result['Pattern'] = array('id' => $patterns['Pattern']['id'], 'name' => $patterns['Pattern']['name']);
+            // パターン情報を格納
+            App::import('Model', 'Pattern');
+            $this->Pattern = new Pattern; 
+            $patterns = $this->Pattern->find('first', array('conditions' => array('id' => $patternId)));
 
+            // 出題パターンに沿って問題情報から各要素を抽出
+            $result['knowledge'] = $this->getKnowledgeElements($problem, $patterns['Pattern']);
+            // 出題パターンを追加格納
+            $result['Pattern'] = array('id' => $patterns['Pattern']['id'], 'name' => $patterns['Pattern']['name']);
+            // カテゴリ判定
+            $result['Category'] = $this->getCategories($result['knowledge']['tknows'][0], $problem['sentence']);
+        }
         return $result;
     }
 
@@ -192,7 +198,7 @@ class Problem extends AppModel {
                 }else{ // 数値のみが存在
                     $result = 'Pg';
                 }
-            }else if(preg_match($deny_pattern1, $data['sentence'] === 1 || preg_match($deny_pattern2, $data['sentence'] === 1))){
+            }else if(preg_match($deny_pattern1, $data['sentence']) === 1 || preg_match($deny_pattern2, $data['sentence']) === 1){
             // 4. 否定的表現とマッチしているか
                 $result = 'Pb-'; // もしくはpd-(両者の判別は不可)
             }else{
@@ -253,10 +259,13 @@ class Problem extends AppModel {
                          */
                         
                         // まずはパターンマッチングを行う
-                        $pattern_s = '/盛岡|岩手|施設|[町街]の?名|地域|老舗/u';
+                        $pattern_s = '/施設|[町街]の?名|地域|老舗/u';
                         $pattern_r = '/盛岡|岩手|寺$|神社$|山$|橋$|学校|高.*校|大学/u';
 
-                        if (preg_match($pattern_s, $data['sentence']) === 1 || preg_match($pattern_r, $data['right_answer']) === 1){
+                        // 最初に正答を判定し、次に問題文に対しマッチング処理を行う
+                        if (preg_match($pattern_r, $data['right_answer']) === 1){
+                            $result = 'Pf';
+                        }else if (preg_match($pattern_s, $data['sentence']) === 1){
                             $result = 'Pf';
                         }else{
                             // Wikipediaの記事参照
@@ -267,7 +276,10 @@ class Problem extends AppModel {
                                     if ($value === 'wikipedia'){
                                         // Wikipediaのアブストを参照
                                         $getwiki = $this->getWikiAbstract($node->getSurface()); 
-                                        if ($getwiki){ // trueのときは独自の用語となる
+                                        if ($getwiki === 'timeout'){
+                                            $result = 'timeout';
+                                            break;
+                                        }else if ($getwiki){ // trueのときは独自の用語となる
                                             $result = 'Pf';
                                             break;
                                         }
@@ -318,13 +330,15 @@ class Problem extends AppModel {
 
         curl_close($ch);
 
-        // パターンマッチング
-        $responseArray = json_decode($response, true);
-        if (isset($reponseArray['results']['bindings'][0]['o']['value'])){
-            $resAbst =  $reponseArray['results']['bindings'][0]['o']['value'];
-            if (preg_match('/盛岡市/u', $resAbst) === 1) $result = true;
-            else $result = false;
-        }else $result = false; 
+        if ($response){
+            // パターンマッチング
+            $responseArray = json_decode($response, true);
+            if (isset($responseArray['results']['bindings'][0]['o']['value'])){
+                $resAbst =  $responseArray['results']['bindings'][0]['o']['value'];
+                if (preg_match('/盛岡市/u', $resAbst) === 1) $result = true;
+                else $result = false;
+            }else $result = false; 
+        }else $result = 'timeout';
 
         return $result;
     }
@@ -383,6 +397,170 @@ class Problem extends AppModel {
         reset($result); // array('keyword' => score)の形式で重要度順に返ってくるので最初の要素名を取得する
         $result = key($result);
         
+        return $result;
+    }
+
+/**
+ * Category自動決定モジュール
+ *
+ * @param string $tknow 対象知識
+ * @param string $sentence replace済みの問題文
+ * @return string[] $result カテゴリーの配列
+ */
+    public function getCategories($tknow, $sentence){
+        $result = ''; // 結果格納用配列
+
+        // 方言の問題の場合
+        if (preg_match('/方言|盛岡弁/u', $sentence) === 1){
+            $result['name'] = '方言';
+            $result['parent'][0] = '盛岡市'; 
+        }else if ($tknow === '盛岡市' || $tknow === '盛岡'){ // 対象知識が盛岡市の場合
+            $result['name'] = '基本問題';
+            $result['parent'][0] = '盛岡市'; 
+        }else{
+            ini_set('mecab.default_userdic', '');
+            $mecab = new Mecab_Tagger();
+            $nodes = $mecab->parseToNode($tknow);
+            // 人名か地域名かを判断(人名優先)
+            foreach($nodes as $node){
+                $feature = explode(',', $node->getFeature());
+                foreach($feature as $value){
+                    if ($value === "人名"){
+                        $result['name'] = '人物';
+                        $result['parent'][0] = '盛岡市';
+                        break;
+                    }else if ($value === '地域'){
+                        // 地域名のときは上書きしないでおき人名優先
+                        $result['name'] = '地域';
+                        $result['parent'][0] = '盛岡市';
+                    }
+                }
+            }
+            if (!isset($result['name'])){ // 人物か地域名じゃないとき
+                $class = ''; // クラス格納用変数
+                // WikipediaOntologyからクラスを判定   
+                $res_wiki = $this->getWikiCategories($tknow, 'Wikipedia');
+                if (empty($res_wiki)){ // WikipediaOntologyの結果がないとき
+                    $res_wiki = $this->getWikiCategories($tknow, 'DBpedia');
+                }
+                if (!empty($res_wiki)){ // 何かしら入ってるとき
+                    foreach($res_wiki as $value){
+                        if (preg_match('/(?<=盛岡市の).*/u', $value, $m) === 1){
+                            $result['name'] = $m[0];
+                            $result['parent'][0] = '盛岡市';
+                            break;
+                        }
+                    } 
+                    if (empty($result['name'])){
+                        foreach($res_wiki as $value){
+                            if (preg_match('/(?<=岩手県の).*/u', $value, $m) === 1){
+                                $result['name'] = $m[0];
+                                $result['parent'][0] = '盛岡市';
+                                break;
+                            }
+                        } 
+                    }
+                    if (empty($result['name'])){
+                        foreach($res_wiki as $value){
+                            if (preg_match('/(?<=日本の).*/u', $value, $m) === 1){
+                                $result['name'] = $m[0];
+                                $result['parent'][0] = '盛岡市';
+                                break;
+                            }
+                        } 
+                    }
+                    if (empty($result['name'])){
+                        $result['name'] = $res_wiki[0];
+                        // ここは今後WordNetなどを用いて親カテゴリを決める必要あり
+                        $result['parent'][0] = '盛岡市';
+                    }
+                }else{ // Wikipediaにデータないとき
+                    $pattern = '/施設|町|街|地域|老舗|寺|神社|山|橋|学校|高.*校|大学/u';
+                    if (preg_match($pattern, $sentence, $m) === 1){
+                        $result['name'] = $m[0];
+                        $result['parent'][0] = '盛岡市';
+                    }else{
+                        $result['name'] = 'NoCategory';
+                        $result['parent'][0] = '盛岡市';
+                    }
+                }
+            }
+        }
+        return $result;
+    }
+
+/**
+ * WikipediaOntologyやDBpediaからカテゴリを抽出する関数
+ * @param string $word 検索文字列
+ * @param string $type WikipediaOntologyかDBpediaか
+ * @return string [] $result 取得したクラス（複数の場合あり）
+ */
+    public function getWikiCategories($word, $type){
+        $result = ''; // 結果格納用
+        $query = '';
+        $query2 = ''; //WikipediaOntologyのtype用
+        $url = '';
+        $url2 = ''; // type用
+        $pattern = '';
+        if ($type === 'Wikipedia'){ // WikipediaOntologyの場合
+            $query = "select distinct * where { <http://www.wikipediaontology.org/instance/".$word."> <http://www.wikipediaontology.org/vocabulary#hyper> ?o. }";
+            $query2 = "select distinct * where { <http://www.wikipediaontology.org/instance/".$word."> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?o . }";
+            // 発行URL
+            $url = 'http://www.wikipediaontology.org/query/?q='.urlencode($query).'&type=json';
+            $url2 = 'http://www.wikipediaontology.org/query/?q='.urlencode($query2).'&type=json';
+            $pattern = '@(?<=class/).*@iu';
+        }else{
+            $query = "select distinct * where { <http://ja.dbpedia.org/resource/".$word."> <http://purl.org/dc/terms/subject> ?o . }";
+            // 発行URL
+            $url = 'http://ja.dbpedia.org/sparql?query='.urlencode($query).'&format=json';
+            $pattern = '@(?<=Category:).*@iu';
+        }
+        // クエリ発行
+        // curlがあるか
+        if (!function_exists('curl_init')){
+            die('CURL is not installed!');
+        }
+        // Curlセッションを初期化
+        $ch= curl_init();
+        // リクエストURLをセット
+        curl_setopt($ch, CURLOPT_URL, $url);
+        // 結果を文字列で取得
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+        // curlの実行
+        $response = curl_exec($ch);
+
+        curl_close($ch);
+
+        // パターンマッチング
+        $responseArray = json_decode($response, true);
+
+        if (!empty($responseArray['results']['bindings'])){
+            // 結果分回す
+            foreach($responseArray['results']['bindings'] as $key => $value){
+                preg_match($pattern, $value['o']['value'], $m);
+                $result[$key] = $m[0];
+            }
+        }else if ($type === 'Wikipedia'){
+            // typeのほう
+            // Curlセッションを初期化
+            $ch= curl_init();
+            // リクエストURLをセット
+            curl_setopt($ch, CURLOPT_URL, $url2);
+            // 結果を文字列で取得
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            // curlの実行
+            $response = curl_exec($ch);
+            curl_close($ch);
+            $responseArray = json_decode($response, true);
+            if (!empty($responseArray['results']['bindings'])){
+                // 結果分回す
+                foreach($responseArray['results']['bindings'] as $key => $value){
+                    preg_match($pattern, $value['o']['value'], $m);
+                    $result[$key] = $m[0];
+                }
+            } 
+        }
         return $result;
     }
 }

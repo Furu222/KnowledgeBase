@@ -94,6 +94,16 @@ class ProblemsController extends AppController {
 
         if (empty($already)){ // まだ登録されていない問題の場合
             $kb = $this->Problem->convertProblem($problem, $year, $grade); // 知識ベースの各要素を取得
+            if ($kb === 'timeout'){
+                $this->Session->setFlash(__('Error: DBpedia is timeout. Please try again.'),
+                    'alert', 
+                    array(
+                        'plugin' => 'TwitterBootstrap',
+                        'class' => 'alert',
+                    ),
+                    'timeout'
+                );
+            }
         }else{ // 登録済みの問題の場合
             $this->Session->setFlash(__('Already this problem has been saved.'),
                 'alert', 
