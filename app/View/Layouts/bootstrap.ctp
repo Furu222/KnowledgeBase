@@ -55,7 +55,7 @@
 					<ul class="nav">
 						<li class="active"><a href="/KnowledgeBase">KnowledgeList</a></li>
 						<li><a href="/KnowledgeBase/problems">Problems</a></li>
-						<li><a href="#contact">Contact</a></li>
+						<li><a href="/KnowledgeBase/categories">Categories</a></li>
 					</ul>
 				</div><!--/.nav-collapse -->
 			</div>

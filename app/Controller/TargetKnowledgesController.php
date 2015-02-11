@@ -71,6 +71,8 @@ class TargetKnowledgesController extends AppController {
 			throw new NotFoundException(__('Invalid %s', __('target knowledge')));
 		}
 		$this->set('targetKnowledge', $this->TargetKnowledge->read(null, $id));
+        $problems = $this->TargetKnowledge->getProblems($id); // 対象知識の問題一覧を取得
+        $this->set('problems', $problems);
 	}
 
 /**

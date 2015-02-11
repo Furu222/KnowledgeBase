@@ -7,14 +7,6 @@ App::uses('AppModel', 'Model');
 class Problem extends AppModel {
 
 /**
- * Validation rules
- *
- * @var array
- */
-	public $validate = array(
-	);
-
-/**
  * 問題情報取得関数
  * @param int $year 出題年度
  * @param int $grade 出題級 

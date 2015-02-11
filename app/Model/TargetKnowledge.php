@@ -7,20 +7,19 @@ App::uses('AppModel', 'Model');
 class TargetKnowledge extends AppModel {
 
 /**
- * Validation rules
- *
- * @var array
+ * 対象知識の問題一覧を取得する関数
+ * @param int $id 対象知識のID
+ * @return string[] $result 問題一覧
  */
-	public $validate = array(
-		'name' => array(
-			'notEmpty' => array(
-				'rule' => array('notEmpty'),
-				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
-			),
-		),
-	);
+    public function getProblems($id){
+        $problems = '';
+        App::import('Model', 'ProblemTargetKnowledge');
+        $this->ProblemTargetKnowledge = new ProblemTargetKnowledge;
+        $p_ids = $this->ProblemTargetKnowledge->find('list', array('fields' => 'problem_id', 'conditions' => array('target_knowledge_id' => $id)));
+        foreach($p_ids as $key => $val){
+            $url = "http://sakumon.jp/app/maker/moridai/get_question/".$val.".json";
+		    $problems[$key] = json_decode(file_get_contents($url), true);
+        }
+        return $problems;
+    }
 }
