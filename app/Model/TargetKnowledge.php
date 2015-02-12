@@ -47,23 +47,48 @@ class TargetKnowledge extends AppModel {
         App::import('Model', 'ProblemPattern');
         $this->ProblemPattern = new ProblemPattern;
 
+        $tknows = '';
+        $objects = '';
+        $properties = '';
+        $tknows_flg = 0;
+        $objects_flg = 0;
+        $properties_flg = 0;
+        $categoris_flg = 0;
         $categories['ProblemCategory']['problem_id'] = $data['ProblemId'];
         $pattern['problem_id'] = $data['ProblemId'];
         $pattern['pattern_id'] = $data['Pattern']['id'];
 
         // 各要素を抽出
         foreach($data['knowledge']['tknows'] as $val){
-            $tknows[] = array('TargetKnowledge' => array('name' => $val), 'ProblemTargetKnowledge' => array(array('problem_id' => $data['ProblemId'])));
+            $uni_conf = $this->find('first', array('conditions' => array('name' => $val))); // 重複確認
+            if (!$uni_conf){ // データがない場合
+                $tknows[] = array('TargetKnowledge' => array('name' => $val), 'ProblemTargetKnowledge' => array(array('problem_id' => $data['ProblemId'])));
+            }else{
+                $tknows[] = array('ProblemTargetKnowledge' => array('problem_id' => $data['ProblemId'], 'target_knowledge_id' => $uni_conf['TargetKnowledge']['id']));
+                $tknows_flg = 1;
+            }
         }
 
         $categories['Category']['name'] = $data['Category']['name'];
-        $res = $this->Category->find('first', array('conditions' => array('Category.name' => $data['Category']['parent'][0])));
-        if ($res){
-            $categories['Category']['parent_id'] = $res['Category']['id'];
+        $uni_conf = $this->Category->find('first', array('conditions' => array('Category.name' => $categories['Category']['name'])));
+        if ($uni_conf){ // 重複あるとき
+            $categories['ProblemCategory']['category_id'] = $uni_conf['Category']['id']; 
+            $categoris_flg = 1;
+        }else{
+            $res = $this->Category->find('first', array('conditions' => array('Category.name' => $data['Category']['parent'][0])));
+            if ($res){ // 親カテゴリの判定
+                $categories['Category']['parent_id'] = $res['Category']['id'];
+            }
         }
 
         foreach($data['knowledge']['objects'] as $val){
-            $objects[] = array('ObjectData' => array('name' => $val), 'ProblemObjectData' => array(array('problem_id' => $data['ProblemId'])));
+            $uni_conf = $this->ObjectData->find('first', array('conditions' => array('ObjectData.name' => $val)));
+            if (!$uni_conf){
+                $objects[] = array('ObjectData' => array('name' => $val), 'ProblemObjectData' => array(array('problem_id' => $data['ProblemId'])));
+            }else{
+                $objects[] = array('ProblemObjectData' => array('problem_id' => $data['ProblemId'], 'object_data_id' => $uni_conf['ObjectData']['id']));
+                $objects_flg = 1;
+            }
         }
 
         foreach($data['knowledge']['properties'] as $val){
@@ -72,15 +97,25 @@ class TargetKnowledge extends AppModel {
 
         // save
         $this->create();
-        $this->saveMany($tknows, array('deep' => true));
+        if ($tknows_flg == 0){ 
+            $this->saveMany($tknows, array('deep' => true));
+        }else{
+            $this->ProblemTargetKnowledge->saveMany($tknows);
+        }
  
         $this->Category->create();
-        $this->Category->save($categories['Category']);
-        $categories['ProblemCategory']['category_id'] = $this->Category->id;
-        $this->Category->ProblemCategory->save($categories['ProblemCategory']);
+        if ($categoris_flg == 0){
+            $this->Category->save($categories['Category']);
+            $categories['ProblemCategory']['category_id'] = $this->Category->id;
+        }
+            $this->Category->ProblemCategory->save($categories['ProblemCategory']);
 
         $this->ObjectData->create();
-        $this->ObjectData->saveMany($objects, array('deep' => true));
+        if ($objects_flg == 0){
+            $this->ObjectData->saveMany($objects, array('deep' => true));
+        }else{
+            $this->ObjectData->ProblemObjectData->saveMany($objects);
+        }
  
         $this->Property->create();
         $this->Property->saveMany($properties, array('deep' => true));
