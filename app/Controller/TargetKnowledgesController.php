@@ -82,27 +82,24 @@ class TargetKnowledgesController extends AppController {
  */
 	public function add() {
 		if ($this->request->is('post')) {
-			$this->TargetKnowledge->create();
-			if ($this->TargetKnowledge->save($this->request->data)) {
-				$this->Session->setFlash(
-					__('The %s has been saved', __('target knowledge')),
-					'alert',
-					array(
-						'plugin' => 'TwitterBootstrap',
-						'class' => 'alert-success'
-					)
-				);
-				$this->redirect(array('action' => 'index'));
-			} else {
-				$this->Session->setFlash(
-					__('The %s could not be saved. Please, try again.', __('target knowledge')),
-					'alert',
-					array(
-						'plugin' => 'TwitterBootstrap',
-						'class' => 'alert-error'
-					)
-				);
-			}
-		}
+            // Sessionの値を取得
+            $kb = $this->Session->read('KnowledeBase');
+
+            // 最初にtknow, category, object, propertyを登録
+            $this->TargetKnowledge->tcopSave($kb);
+            // メッセージ
+            $this->Session->setFlash(
+                __('The %s has been saved', __('target knowledge')),
+                'alert',
+                array(
+                    'plugin' => 'TwitterBootstrap',
+                    'class' => 'alert-success'
+                )
+            );
+        }
+        if ($this->Session->check('KnowledgeBase')){
+            $this->Session->destroy();
+        }
+        $this->redirect(array('action' => 'index'));
 	}
 }

@@ -1,11 +1,11 @@
 <?php
 App::uses('AppModel', 'Model');
 /**
- * ProblemObject Model
+ * ProblemObjectData Model
  *
- * @property Object $Object
+ * @property ObjectData $ObjectData
  */
-class ProblemObject extends AppModel {
+class ProblemObjectData extends AppModel {
 
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
@@ -16,9 +16,9 @@ class ProblemObject extends AppModel {
  * @var array
  */
 	public $belongsTo = array(
-		'Object' => array(
-			'className' => 'Object',
-			'foreignKey' => 'object_id',
+		'ObjectData' => array(
+			'className' => 'ObjectData',
+			'foreignKey' => 'object_data_id',
 			'conditions' => '',
 			'fields' => '',
 			'order' => ''

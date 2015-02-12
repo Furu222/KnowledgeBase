@@ -63,4 +63,14 @@ class Pattern extends AppModel {
 			),
 		),
 	);
+    public $hasMany = array(
+        'ProblemPattern' => array(
+            'className' => 'ProblemPattern',
+            'foreignKey' => 'pattern_id',
+            'conditions' => '',
+            'fields' => '',
+            'order' => ''
+        )
+    );
+
 }

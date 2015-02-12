@@ -60,7 +60,7 @@
         <!-- 問題選択用Box -->
 		<ul class="nav nav-list">
 			<li class="nav-header"><?php echo __('Select Test'); ?></li>
-            <?php echo $this->BootstrapForm->create('Problems', array('calss' => 'form-horizontal'));?>
+            <?php echo $this->BootstrapForm->create('Problems');?>
             <?php echo $this->BootstrapForm->radio('ProblemsType', array(1 => 'Past Test', 0 => 'Original Problems'), array('value' => 1));?>
             <li><?php echo $this->BootstrapForm->input('year', array(
                     'type' => 'date',

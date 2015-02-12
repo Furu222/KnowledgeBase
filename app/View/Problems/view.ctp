@@ -83,7 +83,9 @@
     </div>
     <div class="span9" style='margin-left:0;'>
     <?php
+        echo $this->BootstrapForm->create('KnowledgeBase', array('url' => array('controller' => 'TargetKnowledges', 'action' => 'add')));
         echo $this->BootstrapForm->submit('この問題を登録', array('id' => 'add_button', 'class' => 'btn btn-primary'));
+        echo $this->BootstrapForm->end();
     ?>
     </div>
 </div>

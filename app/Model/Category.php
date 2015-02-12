@@ -61,6 +61,13 @@ class Category extends AppModel {
 			'exclusive' => '',
 			'finderQuery' => '',
 			'counterQuery' => ''
+        ),
+		'ProblemCategory' => array(
+			'className' => 'ProblemCategory',
+			'foreignKey' => 'category_id',
+			'conditions' => '',
+			'fields' => '',
+			'order' => ''
 		)
 	);
 

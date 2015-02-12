@@ -104,6 +104,8 @@ class ProblemsController extends AppController {
                     'timeout'
                 );
             }
+            $kb['ProblemId'] = $p_id;
+            $this->Session->write('KnowledeBase', $kb);
         }else{ // 登録済みの問題の場合
             $this->Session->setFlash(__('Already this problem has been saved.'),
                 'alert', 
@@ -124,17 +126,26 @@ class ProblemsController extends AppController {
             $this->loadModel('ProblemCategory');
             $category = $this->ProblemCategory->find('first', array('conditions' => $conditions));
             $this->loadModel('ProblemProperty');
-            $properties = $this->ProblemProperty->find('all', array('conditioons' => $conditions)); // プロパティは複数の場合もあるため
-            $this->loadModel('ProblemObject');
-            $objects = $this->ProblemObject->find('all', array('conditions' => $conditions)); // オブジェクトも複数の場合もあるため
+            $properties = $this->ProblemProperty->find('all', array('conditions' => $conditions)); // プロパティは複数の場合もあるため
+            $this->loadModel('ProblemObjectData');
+            $objects = $this->ProblemObjectData->find('all', array('conditions' => $conditions)); // オブジェクトも複数の場合もあるため
             $al_flg = 1;
             
             // 取ってきた値を$kbに格納
-            $kb['tknows'] = $t_knows['TargetKnowledge'];
-            $kb['category'] = $category['Category']['name'];
-            $kb['properties'] = $properties['Property'];
-            $kb['objects'] = $objects['Object'];
-            $kb['pattern'] = $pattern['Pattern']; 
+            foreach($t_knows as $key => $value){
+                $kb['knowledge']['tknows'][$key] = $value['TargetKnowledge']['name'];
+            }
+            $kb['Category']['name'] = $category['Category']['name'];
+
+            foreach($properties as $key => $value){
+                $kb['knowledge']['properties'][$key] = $value['Property']['name'];
+            }
+
+            foreach($objects as $key => $value){
+                $kb['knowledge']['objects'][$key] = $value['ObjectData']['name'];
+            }
+
+            $kb['Pattern'] = $pattern; 
         }
         $this->set(compact('kb', 'al_flg'));
 	}
